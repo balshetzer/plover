@@ -4,7 +4,7 @@
 """Generic stenography data models and translation engine.
 
 This module is the foundation for manipulating and understanding the
-output of a stenotype machine. Three classes copmose this module:
+output of a stenotype machine. Three classes compose this module:
 
 Stroke -- A data model class that encapsulates a sequence of steno
 keys, which might be ASCII or raw binary data, in the context of a
@@ -60,7 +60,7 @@ STENO_KEY_ORDER = {"#": -1,
 STENO_KEYS = tuple(STENO_KEY_ORDER.keys())
 
 
-class Stroke :
+class Stroke(object):
     """A standardized data model for stenotype machine strokes.
 
     This class standardizes the representation of a stenotype chord
@@ -133,7 +133,7 @@ class Stroke :
         return str(self)
 
 
-class Translation :
+class Translation(object):
     """A data model for the mapping between a sequence of Strokes and a string.
 
     This class represents the mapping between a sequence of Stroke
@@ -200,7 +200,7 @@ class Translation :
         return 0
 
 
-class Translator :
+class Translator(object):
     """Converts a stenotype key stream to a translation stream.
 
     An instance of this class serves as a state machine for processing
@@ -235,48 +235,22 @@ class Translator :
 
     """
 
-    def __init__(self,
-                 steno_machine,
-                 dictionary,
-                 dictionary_format,
-                 max_number_of_strokes=None):
+    def __init__(self, dictionary_format):
         """Prepare to translate steno keys into dictionary string values.
 
         Arguments:
 
-        steno_machine -- An instance of the Stenotype class from one
-        of the submodules of plover.machine. For example,
-        plover.machine.geminipr.Stenotype.
-
-        dictionary -- A dictionary that maps strings in RTF/CRE format
-        to English or meta command strings.
-
         dictionary_format -- One of the submodules of
         plover.dictionary. For example, plover.dictionary.eclipse.
 
-        max_number_of_strokes -- The length of the internal Stroke
-        FIFO. This should generally be the longest sequence of strokes
-        expected to be a valid translation. If None, this value
-        defaults to the longest sequence of strokes found in the
-        dictionary argument. This value should generally be left
-        unchanged from its default of None.
-
         """
-        self.steno_machine = steno_machine
         self.strokes = []
         self.translations = []
         self.overflow = None
-        self.dictionary = dictionary
+        self.dictionary = {}
         self.dictionary_format = dictionary_format
         self.subscribers = []
-        if max_number_of_strokes is None :
-            max_number_of_strokes = 0
-            delimiter = dictionary_format.STROKE_DELIMITER
-            for rtfcre in dictionary.keys() :
-                max_number_of_strokes = max(max_number_of_strokes,
-                                            len(rtfcre.split(delimiter)))
-        self.max_number_of_strokes = max_number_of_strokes
-        self.steno_machine.add_callback(self.consume_steno_keys)
+        self.max_number_of_strokes = 0
 
     def consume_steno_keys(self, steno_keys):
         """Process the raw output from a Stenotype object.
@@ -304,6 +278,10 @@ class Translator :
         stroke -- The Stroke object to process.
 
         """
+        # TODO: Changing the dictionary on the fly can cause previous text to 
+        # change unexpectedly. This should be fixed. Most likely by changing the
+        # translator's algorithm to only try to augment the last translation.
+                
         # If stroke buffer is full, discard all strokes of oldest
         # translation to make room for the new stroke.
         if stroke.is_correction and len(self.strokes) > 0:
@@ -366,8 +344,36 @@ class Translator :
                 for t in new_translations[len(old_translations):] :
                     self._emit_translation(t)
 
+    def add_translations(self, dictionary):
+        """Add entries to the dictionary.
+        
+        Arguments:
+        
+        dictionary -- A dictionary that maps strings in RTF/CRE format
+        to English or meta command strings.
+        
+        """
+        self.dictionary.update(dictionary)
+        delimiter = self.dictionary_format.STROKE_DELIMITER
+        for rtfcre in dictionary.keys() :
+            self.max_number_of_strokes = max(self.max_number_of_strokes,
+                                             len(rtfcre.split(delimiter)))
+                                             
+    def remove_translations(self, keys):
+        """Remove entries from the dictionary.
+        
+        Arguments:
+        
+        keys -- The keys to remove from the dictionary.
+        
+        """
+        for key in keys:
+            del self.dictionary[key]    
+        # Do not recompute the size of the buffer since that will mess with computing
+        # overflow.
+        
     def add_callback(self, callback) :
-        """Subscribes a function to receive new trasnlations.
+        """Subscribes a function to receive new translations.
 
         Arguments:
 
@@ -379,6 +385,16 @@ class Translator :
 
         """
         self.subscribers.append(callback)
+
+    def remove_callback(self, callback) :
+        """Removes a function from receiving new translations.
+
+        Arguments:
+
+        callback -- A function that was previously added using add_callback.
+
+        """
+        self.subscribers.remove(callback)
 
     def _emit_translation(self, translation):
         # Send a new translation and any dropped translations to all listeners.

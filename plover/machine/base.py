@@ -36,6 +36,16 @@ class StenotypeBase:
 
         """
         self.subscribers.append(callback)
+        
+    def remove_callback(self, callback):
+        """Unsubscribe from output from the stenotype machine.
+
+        Argument:
+
+        callback -- A function previously added using add_callback.
+
+        """
+        self.subscribers.remove(callback)
 
     def _notify(self, steno_keys):
         """Invoke the callback of each subscriber with the given argument."""
@@ -83,4 +93,5 @@ class SerialStenotypeBase(StenotypeBase, threading.Thread):
     def stop_capture(self):
         """Stop listening for output from the stenotype machine."""
         self.finished.set()
+        # TODO: Don't close the port until the loop reports that it stopped.
         self.serial_port.close()

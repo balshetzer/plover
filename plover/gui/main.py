@@ -70,9 +70,8 @@ class Frame(wx.Frame):
         config = ConfigParser.RawConfigParser()
         config.read(config_file)
         try:
-            self.steno_engine = app.StenoEngine()
-            self.steno_engine.formatter.engine_command_callback = \
-              self.consume_command
+            self.steno_engine = app.steno_engine_from_config(conf.get_config())
+            self.steno_engine.set_engine_command_callback(self.consume_command)
         except exception.SerialPortException, spe:
             self.steno_engine = None
             alert_dialog = wx.MessageDialog(self._show_config_dialog(),
@@ -158,7 +157,7 @@ class Frame(wx.Frame):
         self.steno_engine.set_is_running(not self.steno_engine.is_running)
 
     def _show_config_dialog(self, event=None):
-        dialog = gui.ConfigurationDialog(conf.CONFIG_FILE)
+        dialog = gui.ConfigurationDialog(conf.CONFIG_FILE, self)
         dialog.Show()
         return dialog
 
