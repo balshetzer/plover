@@ -33,6 +33,28 @@ import plover.machine.base
 import plover.machine.sidewinder
 import plover.dictionary
 
+def load_dict(config):
+    # Load the dictionary. The dictionary path can be either
+    # absolute or relative to the configuration directory.
+    dictionary_filename = config.get(conf.DICTIONARY_CONFIG_SECTION,
+                                     conf.DICTIONARY_FILE_OPTION)
+    dictionary_path = os.path.join(conf.CONFIG_DIR, dictionary_filename)
+    if not os.path.isfile(dictionary_path):
+        raise ValueError('Invalid configuration value for %s: %s' %
+                         (conf.DICTIONARY_FILE_OPTION, dictionary_path))
+    dictionary_extension = os.path.splitext(dictionary_path)[1]
+    if dictionary_extension == conf.JSON_EXTENSION:
+        try:
+            with open(dictionary_path, 'r') as f:
+                dictionary = json.load(f)
+        except UnicodeDecodeError:
+            with open(dictionary_path, 'r') as f:
+                dictionary = json.load(f, conf.ALTERNATIVE_ENCODING)
+    else:
+        raise ValueError('The value of %s must end with %s.' %
+                         (conf.DICTIONARY_FILE_OPTION, conf.JSON_EXTENSION))
+    return dictionary
+
 def steno_engine_from_config(config):
     """Creates and configures a single steno pipeline."""
 
@@ -60,25 +82,7 @@ def steno_engine_from_config(config):
         raise ValueError('Invalid configuration value for %s: %s' %
                          (conf.DICTIONARY_FORMAT_OPTION, dictionary_format))
 
-    # Load the dictionary. The dictionary path can be either
-    # absolute or relative to the configuration directory.
-    dictionary_filename = config.get(conf.DICTIONARY_CONFIG_SECTION,
-                                     conf.DICTIONARY_FILE_OPTION)
-    dictionary_path = os.path.join(conf.CONFIG_DIR, dictionary_filename)
-    if not os.path.isfile(dictionary_path):
-        raise ValueError('Invalid configuration value for %s: %s' %
-                         (conf.DICTIONARY_FILE_OPTION, dictionary_path))
-    dictionary_extension = os.path.splitext(dictionary_path)[1]
-    if dictionary_extension == conf.JSON_EXTENSION:
-        try:
-            with open(dictionary_path, 'r') as f:
-                dictionary = json.load(f)
-        except UnicodeDecodeError:
-            with open(dictionary_path, 'r') as f:
-                dictionary = json.load(f, conf.ALTERNATIVE_ENCODING)
-    else:
-        raise ValueError('The value of %s must end with %s.' %
-                         (conf.DICTIONARY_FILE_OPTION, conf.JSON_EXTENSION))
+    dictionary = load_dict(config)
 
     # Initialize the logger.
     log_file = os.path.join(conf.CONFIG_DIR,
