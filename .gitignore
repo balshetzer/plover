@@ -38,3 +38,5 @@ nosetests.xml
 # emacs backups
 *~
 
+# textmate files
+*.tmproj

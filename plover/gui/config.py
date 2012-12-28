@@ -9,7 +9,6 @@ import wx.lib.filebrowsebutton as filebrowse
 import ConfigParser
 from serial import Serial
 import plover.machine as machine
-import plover.dictionary as dictionary
 import plover.config as conf
 import plover.gui.serial_config as serial_config
 

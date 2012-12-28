@@ -61,7 +61,7 @@ class Stenotype(StenotypeBase):
         self._keyboard_capture = keyboardcontrol.KeyboardCapture()
         self._keyboard_capture.key_down = self._key_down
         self._keyboard_capture.key_up = self._key_up
-        self.suppress_keyboard(True)
+        self.suppress_keyboard(False)
         self._down_keys = set()
         self._released_keys = set()
 

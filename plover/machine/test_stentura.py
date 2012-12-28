@@ -1,4 +1,4 @@
-# Copyright (c) 2011 Hesky Fisher
+# Copyright (c) 2012 Hesky Fisher
 # See LICENSE.txt for details.
 
 """Unit tests for stentura.py."""
@@ -82,7 +82,7 @@ class MockPacketPort(object):
         response = self._responses[self.writes - 1]
         return response
 
-class TestCase(unittest.TestCase):
+class StenturaTestCase(unittest.TestCase):
     def test_crc(self):
         data = [ord(x) for x in '123456789']
         self.assertEqual(stentura._crc(data), 0xBB3D)
@@ -103,8 +103,7 @@ class TestCase(unittest.TestCase):
         d = 0b11001000
         self.assertItemsEqual(stentura._parse_stroke(a, b, c, d),
                               ['S-', 'A-', '-T'])
-# 11^#STKP 11WHRAO* 11EUFRPB 11LGTSDZ
-# PRAOERBGS
+
     def test_parse_strokes(self):
         data = []
         # SAT
