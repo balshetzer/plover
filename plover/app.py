@@ -40,15 +40,20 @@ import engine
 
 STROKE_DELIMITER = '/'
 
-def load_dict(config):
-    # Load the dictionary. The dictionary path can be either
-    # absolute or relative to the configuration directory.
+def get_dict_path(config):
+    # The dictionary path can be either absolute or relative to the
+    # configuration directory.
     dictionary_filename = config.get(conf.DICTIONARY_CONFIG_SECTION,
                                      conf.DICTIONARY_FILE_OPTION)
     dictionary_path = os.path.join(conf.CONFIG_DIR, dictionary_filename)
     if not os.path.isfile(dictionary_path):
         raise ValueError('Invalid configuration value for %s: %s' %
                          (conf.DICTIONARY_FILE_OPTION, dictionary_path))
+    return dictionary_path
+
+def load_dict(config):
+    dictionary_path = get_dict_path(config)
+    # Load the dictionary. 
     dictionary_extension = os.path.splitext(dictionary_path)[1]
     if dictionary_extension == conf.JSON_EXTENSION:
         try:
@@ -65,6 +70,15 @@ def load_dict(config):
         dictionary[tuple(k.split(STROKE_DELIMITER))] = v
     return dictionary
 
+def save_dict(config, d):
+    dictionary_path = get_dict_path(config)
+    saved = {}
+    for k, v in d.items():
+        saved['/'.join(k)] = v
+    json_s = json.dumps(saved, sort_keys=True, indent=0, separators=(',', ': '))    
+    with open(dictionary_path, 'w') as f:
+        f.write(json_s)
+        
 def machine_from_config(config):
     # Set the machine module and any initialization variables.
     machine_type = config.get(conf.MACHINE_CONFIG_SECTION,

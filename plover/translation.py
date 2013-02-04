@@ -148,6 +148,9 @@ class Translator(object):
     def clear_dictionary(self):
         self._dictionary.clear()
         
+    def set_dictionary(self, dict):
+        self._dictionary = dict
+        
     def add_listener(self, callback):
         self._listeners.append(callback)
         

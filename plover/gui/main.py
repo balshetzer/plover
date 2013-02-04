@@ -9,6 +9,11 @@ configuration.
 
 """
 
+# BUG: In command mode on keyboard, regular text is still typed when used as a command.
+
+# TODO: swap out states when doing dict updates
+
+# TODO: threading issues
 
 # write: normal keyboard
 # command only: ability to turn on or off
@@ -24,6 +29,8 @@ import plover.config as conf
 import plover.gui.config as gui
 import plover.exception as exception
 import plover.oslayer.keyboardcontrol as keyboardcontrol
+
+import plover.translation as translation
 
 from plover import __name__ as __software_name__
 from plover import __version__
@@ -66,6 +73,9 @@ class Frame(wx.Frame):
     COMMAND_CONFIGURE = 'CONFIGURE'
     COMMAND_FOCUS = 'FOCUS'
     COMMAND_QUIT = 'QUIT'
+    COMMAND_DICT_UPDATE = "DICT_UPDATE"
+    COMMAND_TOGGLE_FIELDS = "TOGGLE_FIELDS"
+    COMMAND_ADD_TRANSLATION = "ADD_TRANSLATION"
 
     def __init__(self):
         wx.Frame.__init__(self, None,
@@ -118,7 +128,9 @@ class Frame(wx.Frame):
                                        conf.MACHINE_AUTO_START_OPTION)
         self._set_machine_on(auto_start)
         
-        wx.CallAfter(self._show_dict_dialog)
+        # Hacky stuff for dict update
+        self.real_dict = self.steno_engine._translator._dictionary
+        self.dict_dialog = AddToDictDialog(self)
 
     def consume_command(self, command):
         # Wrap all actions in a CallAfter since the initiator of the
@@ -134,6 +146,12 @@ class Frame(wx.Frame):
         elif command == self.COMMAND_FOCUS:
             wx.CallAfter(self.Raise)
             wx.CallAfter(self.Iconize, False)
+        elif command == self.COMMAND_DICT_UPDATE:
+            wx.CallAfter(self._show_dict_dialog)
+        elif command == self.COMMAND_TOGGLE_FIELDS:
+            wx.CallAfter(self.dict_dialog.toggle_fields)
+        elif command == self.COMMAND_ADD_TRANSLATION:
+            wx.CallAfter(self.dict_dialog.add_translation)
         elif command == self.COMMAND_QUIT:
             wx.CallAfter(self._quit)
 
@@ -178,8 +196,7 @@ class Frame(wx.Frame):
         return dialog
         
     def _show_dict_dialog(self):
-        dialog = AddToDictDialog(self)
-        dialog.Show()
+        self.dict_dialog.Show()
 
     def _show_about_dialog(self, event=None):
         """Called when the About... button is clicked."""
@@ -276,8 +293,11 @@ class AddToDictDialog(wx.Dialog):
         box.Add(wx.StaticText(self, label='translation:'), border=3)
         self.translation_text = wx.TextCtrl(self)
         self.translation_text.Bind(wx.EVT_TEXT, self._on_translation_change)
+        self.translation_text.Bind(wx.EVT_SET_FOCUS, self._on_translation_gained_focus)
+        self.translation_text.Bind(wx.EVT_KILL_FOCUS, self._on_translation_lost_focus)
         box.Add(self.translation_text, border=3)
         button = wx.Button(self, label='Add to dictionary')
+        button.Bind(wx.EVT_BUTTON, self.add_translation)
         box.Add(button)
         sizer.Add(box)
         
@@ -297,16 +317,44 @@ class AddToDictDialog(wx.Dialog):
         sizer.SetSizeHints(self)
         self.Layout()
         
-        self.strokes_text.SetFocus()
-        
-        self.dictionary = self.parent.steno_engine._translator._dictionary
+        # BUG: reverse dict doesn't update with dict changes
+        self.dictionary = self.parent.real_dict
         self.reverse_dictionary = {}
         for k, v in self.dictionary.items():
             if v in self.reverse_dictionary:
                 self.reverse_dictionary[v].append(k)
             else:
                 self.reverse_dictionary[v] = [k]
-        
+
+        self._stroke_dict = translation._Dictionary()
+        # BUG: This doesn't work if there are spaces
+        for special in ['{PLOVER:TOGGLE_FIELDS}', '{PLOVER:ADD_TRANSLATION}']:
+            if special in self.reverse_dictionary:
+                for strokes in self.reverse_dictionary[special]:
+                    self._stroke_dict[strokes] = special
+                    
+        self.stroke_in_focus = True
+
+    def reset(self):
+        # Empty the text of both fields
+        # Fix focus issues.
+        pass
+
+    def add_translation(self, event=None):
+        d = self.parent.real_dict
+        strokes = tuple(s for s in self.strokes_text.GetValue().split())
+        translation = self.translation_text.GetValue()
+        d[strokes] = translation
+        # TODO: Save file
+        app.save_dict(conf.get_config(), d)
+        self.Close()
+
+    def toggle_fields(self):
+        if self.stroke_in_focus:
+            self.translation_text.SetFocus()
+        else:
+            self.strokes_text.SetFocus()
+
     def _on_strokes_change(self, event):
         stroke = event.GetString()
         if stroke:
@@ -328,13 +376,12 @@ class AddToDictDialog(wx.Dialog):
         # TODO: This lookup isn't fully correct because translations aren't
         # canonicalized. Also, no full search is done to see if combos of translations
         # get the same result.
-                
+
         translation = event.GetString()
         if translation:
             strokes = self.reverse_dictionary.get(translation, [])
             if strokes:
                 s = '"' + translation + '" is already mapped by: ' + (' and '.join(['"' + ('/'.join(s)) + '"' for s in strokes]))
-                print s
                 self.translation_mapping_text.SetLabel(s)
             else:
                 self.translation_mapping_text.SetLabel('')
@@ -344,21 +391,30 @@ class AddToDictDialog(wx.Dialog):
         self.GetSizer().Layout()
 
     def _on_strokes_gained_focus(self, event=None):
-        print 'strokes gained focus'
-        event.Skip()
+        self.parent.steno_engine._translator.set_dictionary(self._stroke_dict)
+        self.stroke_in_focus = True
 
     def _on_strokes_lost_focus(self, event=None):
-        print 'strokes lost focus'
-        event.Skip()
+        self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
+
+    def _on_translation_gained_focus(self, event=None):
+        self.stroke_in_focus = False
+
+    def _on_translation_lost_focus(self, event=None):
+        pass
 
     def _on_activate(self, event):
         b = 'gained' if event.GetActive() else 'lost'
-        print 'dialog %s focus' % b
-        event.Skip()
+        if event.GetActive():
+            self.strokes_text.SetFocus()
+            # This needs to be called because when the dialog gets back focus the strokes field may already have focus and so the event will not fire.
+            self._on_strokes_gained_focus()
+        else:
+            self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
+        # TODO: CLose dialog on losing focus? Or reuse same dialog every time.
 
     def _on_close(self, event):
         #self._on_strokes_lost_focus()
-        print 'closed'
+        # Clear fields on close
         #self.Destroy()
         event.Skip()
-        
