@@ -409,6 +409,7 @@ class AddToDictDialog(wx.Dialog):
             self.strokes_text.SetFocus()
             # This needs to be called because when the dialog gets back focus the strokes field may already have focus and so the event will not fire.
             self._on_strokes_gained_focus()
+            self.Raise()
         else:
             self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
         # TODO: CLose dialog on losing focus? Or reuse same dialog every time.
