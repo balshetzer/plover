@@ -364,7 +364,7 @@ class AddToDictDialog(wx.Dialog):
             stroke = event.GetString()
             if stroke:
                 stroke = stroke.upper()
-                self.strokes_text.SetValue(stroke)
+                self.strokes_text.ChangeValue(stroke)
                 self.strokes_text.SetInsertionPointEnd()
                 translation = self.dictionary.get(tuple(stroke.replace('/', ' ').split()), None)
                 if translation:
