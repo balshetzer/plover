@@ -23,6 +23,7 @@ configuration.
 
 import os
 import wx
+import threading
 import ConfigParser
 import plover.app as app
 import plover.config as conf
@@ -131,6 +132,7 @@ class Frame(wx.Frame):
         # Hacky stuff for dict update
         self.real_dict = self.steno_engine._translator._dictionary
         self.dict_dialog = AddToDictDialog(self)
+        self.lock = threading.RLock()
 
     def consume_command(self, command):
         # Wrap all actions in a CallAfter since the initiator of the
@@ -211,7 +213,8 @@ class Frame(wx.Frame):
         wx.AboutBox(info)
         
     def _machine_callback(self, stroke):
-        self.steno_engine.process_stroke(stroke)
+        with self.lock:
+            self.steno_engine.process_stroke(stroke)
         
     def _init_machine(self, config=None):
         config = config if config else conf.get_config()
@@ -230,7 +233,7 @@ class Frame(wx.Frame):
             alert_dialog.ShowModal()
             alert_dialog.Destroy()
             return
-        self.machine.add_callback(self.steno_engine.process_stroke)
+        self.machine.add_callback(self._machine_callback)
         self.machine.start_capture()
         # TODO: A way to wait on the machine being ready?
 
@@ -341,13 +344,14 @@ class AddToDictDialog(wx.Dialog):
         pass
 
     def add_translation(self, event=None):
-        d = self.parent.real_dict
-        strokes = tuple(s for s in self.strokes_text.GetValue().split())
-        translation = self.translation_text.GetValue()
-        d[strokes] = translation
-        # TODO: Save file
-        app.save_dict(conf.get_config(), d)
-        self.Close()
+        with self.parent.lock:
+            d = self.parent.real_dict
+            strokes = tuple(s for s in self.strokes_text.GetValue().split())
+            translation = self.translation_text.GetValue()
+            d[strokes] = translation
+            # TODO: Save file
+            app.save_dict(conf.get_config(), d)
+            self.Close()
 
     def toggle_fields(self):
         if self.stroke_in_focus:
@@ -356,20 +360,21 @@ class AddToDictDialog(wx.Dialog):
             self.strokes_text.SetFocus()
 
     def _on_strokes_change(self, event):
-        stroke = event.GetString()
-        if stroke:
-            stroke = stroke.upper()
-            self.strokes_text.SetValue(stroke)
-            self.strokes_text.SetInsertionPointEnd()
-            translation = self.dictionary.get(tuple(stroke.replace('/', ' ').split()), None)
-            if translation:
-                self.stroke_mapping_text.SetLabel('"' + event.GetString() + '" already maps to "' + translation + '"')
+        with self.parent.lock:
+            stroke = event.GetString()
+            if stroke:
+                stroke = stroke.upper()
+                self.strokes_text.SetValue(stroke)
+                self.strokes_text.SetInsertionPointEnd()
+                translation = self.dictionary.get(tuple(stroke.replace('/', ' ').split()), None)
+                if translation:
+                    self.stroke_mapping_text.SetLabel('"' + event.GetString() + '" already maps to "' + translation + '"')
+                else:
+                    self.stroke_mapping_text.SetLabel('')
             else:
                 self.stroke_mapping_text.SetLabel('')
-        else:
-            self.stroke_mapping_text.SetLabel('')
-        self.GetSizer().Fit(self)
-        self.GetSizer().Layout()
+            self.GetSizer().Fit(self)
+            self.GetSizer().Layout()
 
     def _on_translation_change(self, event):
         
@@ -391,11 +396,13 @@ class AddToDictDialog(wx.Dialog):
         self.GetSizer().Layout()
 
     def _on_strokes_gained_focus(self, event=None):
-        self.parent.steno_engine._translator.set_dictionary(self._stroke_dict)
-        self.stroke_in_focus = True
+        with self.parent.lock:
+            self.parent.steno_engine._translator.set_dictionary(self._stroke_dict)
+            self.stroke_in_focus = True
 
     def _on_strokes_lost_focus(self, event=None):
-        self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
+        with self.parent.lock:
+            self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
 
     def _on_translation_gained_focus(self, event=None):
         self.stroke_in_focus = False
@@ -411,7 +418,8 @@ class AddToDictDialog(wx.Dialog):
             self._on_strokes_gained_focus()
             self.Raise()
         else:
-            self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
+            with self.parent.lock:
+                self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
         # TODO: CLose dialog on losing focus? Or reuse same dialog every time.
 
     def _on_close(self, event):
