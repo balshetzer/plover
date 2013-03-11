@@ -123,7 +123,6 @@ class Translator(object):
     """
     def __init__(self):
         self._undo_length = 0
-        self._stroke_buffer_size = 0
         self._dictionary = _Dictionary()
         self._listeners = []
         self._state = _State()

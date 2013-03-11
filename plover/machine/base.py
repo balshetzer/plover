@@ -3,6 +3,8 @@
 
 """Base classes for machine types. Do not use directly."""
 
+# TODO: Stop calling the steno variable "RTFCRE".
+
 import serial
 import threading
 from plover.exception import SerialPortException
@@ -69,20 +71,20 @@ class Stroke(object):
         # Remove duplicate keys and save local versions of the input 
         # parameters.
         steno_keys_set = set(steno_keys)
-        self.steno_keys = list(steno_keys_set)
+        steno_keys = list(steno_keys_set)
 
         # Order the steno keys so comparisons can be made.
-        self.steno_keys.sort(key=lambda x: STENO_KEY_ORDER[x])
+        steno_keys.sort(key=lambda x: STENO_KEY_ORDER[x])
          
         # Convert strokes involving the number bar to numbers.
-        if '#' in self.steno_keys:
+        if '#' in steno_keys:
             numeral = False
-            for i, e in enumerate(self.steno_keys):
+            for i, e in enumerate(steno_keys):
                 if e in STENO_KEY_NUMBERS:
-                    self.steno_keys[i] = STENO_KEY_NUMBERS[e]
+                    steno_keys[i] = STENO_KEY_NUMBERS[e]
                     numeral = True
             if numeral:
-                self.steno_keys.remove('#')
+                steno_keys.remove('#')
         
         if steno_keys_set & IMPLICIT_HYPHEN:
             self.rtfcre = ''.join(key.strip('-') for key in steno_keys)
@@ -91,6 +93,8 @@ class Stroke(object):
                           k == '#')
             post = ''.join(k.strip('-') for k in steno_keys if k[0] == '-')
             self.rtfcre = '-'.join([pre, post]) if post else pre
+
+        self.steno_keys = steno_keys
 
         # Determine if this stroke is a correction stroke.
         self.is_correction = (self.rtfcre == '*')
@@ -110,6 +114,7 @@ class Stroke(object):
 
     def __repr__(self):
         return str(self)
+
 
 class StenotypeBase:
     """The base class for all Stenotype classes."""

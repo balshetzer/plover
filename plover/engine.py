@@ -71,6 +71,8 @@ class StenoEngine(object):
 
         # Construct the stenography capture-translate-format-display pipeline.
         self._translator = translation.Translator()
+        # hack
+        self._translator.set_undo_length(30)
         self._formatter = formatting.Formatter()
         self._translator.add_listener(self._formatter.format)
 

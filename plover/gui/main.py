@@ -24,6 +24,7 @@ configuration.
 import os
 import wx
 import threading
+import copy
 import ConfigParser
 import plover.app as app
 import plover.config as conf
@@ -77,7 +78,8 @@ class Frame(wx.Frame):
     COMMAND_DICT_UPDATE = "DICT_UPDATE"
     COMMAND_TOGGLE_FIELDS = "TOGGLE_FIELDS"
     COMMAND_ADD_TRANSLATION = "ADD_TRANSLATION"
-
+    COMMAND_CANCEL = "CANCEL"
+    
     def __init__(self):
         wx.Frame.__init__(self, None,
                           title=self.TITLE,
@@ -154,6 +156,8 @@ class Frame(wx.Frame):
             wx.CallAfter(self.dict_dialog.toggle_fields)
         elif command == self.COMMAND_ADD_TRANSLATION:
             wx.CallAfter(self.dict_dialog.add_translation)
+        elif command == self.COMMAND_CANCEL:
+            wx.CallAfter(self.dict_dialog.cancel)
         elif command == self.COMMAND_QUIT:
             wx.CallAfter(self._quit)
 
@@ -199,6 +203,7 @@ class Frame(wx.Frame):
         
     def _show_dict_dialog(self):
         self.dict_dialog.Show()
+        self.dict_dialog.reset()
 
     def _show_about_dialog(self, event=None):
         """Called when the About... button is clicked."""
@@ -337,11 +342,17 @@ class AddToDictDialog(wx.Dialog):
                     self._stroke_dict[strokes] = special
                     
         self.stroke_in_focus = True
+        
+        # cached state
+        self.cached_state = None
 
     def reset(self):
-        # Empty the text of both fields
-        # Fix focus issues.
-        pass
+        self.strokes_text.SetValue('')
+        self.translation_text.SetValue('')
+        self.strokes_text.SetFocus()
+
+    def cancel(self):
+        sef.Close()
 
     def add_translation(self, event=None):
         with self.parent.lock:
@@ -398,17 +409,26 @@ class AddToDictDialog(wx.Dialog):
     def _on_strokes_gained_focus(self, event=None):
         with self.parent.lock:
             self.parent.steno_engine._translator.set_dictionary(self._stroke_dict)
+            self.cached_state = copy.deepcopy(self.parent.steno_engine._translator.get_state())
+            self.parent.steno_engine._translator.clear_state()
             self.stroke_in_focus = True
 
     def _on_strokes_lost_focus(self, event=None):
         with self.parent.lock:
             self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
+            if self.cached_state:
+                self.parent.steno_engine._translator.set_state(self.cached_state)
+                self.cached_state = None
 
     def _on_translation_gained_focus(self, event=None):
         self.stroke_in_focus = False
+        self.cached_state = copy.deepcopy(self.parent.steno_engine._translator.get_state())
+        self.parent.steno_engine._translator.clear_state()
 
     def _on_translation_lost_focus(self, event=None):
-        pass
+        if self.cached_state:
+            self.parent.steno_engine._translator.set_state(self.cached_state)
+            self.cached_state = None
 
     def _on_activate(self, event):
         b = 'gained' if event.GetActive() else 'lost'
@@ -420,6 +440,10 @@ class AddToDictDialog(wx.Dialog):
         else:
             with self.parent.lock:
                 self.parent.steno_engine._translator.set_dictionary(self.parent.real_dict)
+                if self.cached_state:
+                    self.parent.steno_engine._translator.set_state(self.cached_state)
+                    self.cached_state = None
+                
         # TODO: CLose dialog on losing focus? Or reuse same dialog every time.
 
     def _on_close(self, event):
