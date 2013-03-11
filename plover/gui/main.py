@@ -42,6 +42,9 @@ from plover import __url__
 from plover import __credits__
 from plover import __license__
 
+if sys.platform.startswith('win32'):
+    import win32gui
+
 class PloverGUI(wx.App):
     """The main entry point for the Plover application."""
     
@@ -202,6 +205,8 @@ class Frame(wx.Frame):
         return dialog
         
     def _show_dict_dialog(self):
+        if sys.platform.startswith('win32'):
+            self.dict_dialog._last_window = win32gui.GetForegroundWindow()
         self.dict_dialog.Show()
         self.dict_dialog.reset()
 
@@ -346,6 +351,8 @@ class AddToDictDialog(wx.Dialog):
         
         # cached state
         self.cached_state = None
+        
+        self._last_window = None
 
     def reset(self):
         self.strokes_text.SetValue('')
@@ -452,3 +459,6 @@ class AddToDictDialog(wx.Dialog):
         # Clear fields on close
         #self.Destroy()
         event.Skip()
+        
+        if sys.platform.startswith('win32'):
+            win32gui.SetForegroundWindow(self._last_window)
