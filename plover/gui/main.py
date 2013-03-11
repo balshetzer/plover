@@ -223,9 +223,12 @@ class Frame(wx.Frame):
         info.License = __license__
         wx.AboutBox(info)
         
-    def _machine_callback(self, stroke):
+    def _process_stroke(self, stroke):
         with self.lock:
             self.steno_engine.process_stroke(stroke)
+        
+    def _machine_callback(self, stroke):
+        wx.CallAfter(self._process_stroke, stroke)
         
     def _init_machine(self, config=None):
         config = config if config else conf.get_config()
