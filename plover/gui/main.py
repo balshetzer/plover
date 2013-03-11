@@ -336,7 +336,8 @@ class AddToDictDialog(wx.Dialog):
 
         self._stroke_dict = translation._Dictionary()
         # BUG: This doesn't work if there are spaces
-        for special in ['{PLOVER:TOGGLE_FIELDS}', '{PLOVER:ADD_TRANSLATION}']:
+        for special in ['{PLOVER:TOGGLE_FIELDS}', '{PLOVER:ADD_TRANSLATION}',
+                        '{PLOVER:CANCEL}']:
             if special in self.reverse_dictionary:
                 for strokes in self.reverse_dictionary[special]:
                     self._stroke_dict[strokes] = special
