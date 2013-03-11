@@ -353,7 +353,7 @@ class AddToDictDialog(wx.Dialog):
         self.strokes_text.SetFocus()
 
     def cancel(self):
-        sef.Close()
+        self.Close()
 
     def add_translation(self, event=None):
         with self.parent.lock:
