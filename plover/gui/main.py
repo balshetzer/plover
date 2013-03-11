@@ -23,6 +23,7 @@ configuration.
 
 import os
 import wx
+import sys
 import threading
 import copy
 import ConfigParser
