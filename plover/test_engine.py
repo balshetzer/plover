@@ -112,6 +112,8 @@ class EngineTestCase(unittest.TestCase):
     def test_engine_undo_tail(self):
         output = TextOutput()
         e = engine.StenoEngine()
+        # TODO: This is hacky.
+        e._translator.set_undo_length(1)
         e.set_output(output)
         e.add_translation(('S',), 'make')
         e.add_translation(('T',), '{^ing}')

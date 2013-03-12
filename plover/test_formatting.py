@@ -218,7 +218,7 @@ class FormatterTestCase(unittest.TestCase):
          [action(word='test', attach=True)]),
          
         (('{^} {.} hello {.} {#ALT_L(Grave)}{^ ^}', action()),
-         [action(), 
+         [action(attach=True), 
           action(text='.', capitalize=True), 
           action(text=' Hello', word='Hello'), 
           action(text='.', capitalize=True), 

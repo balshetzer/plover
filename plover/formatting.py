@@ -272,23 +272,21 @@ def _atom_to_action(atom, last_action):
                 text = _capitalize(text)
             action.text = space + text
             action.word = _rightmost_word(last_word + action.text)
-        elif meta.startswith(META_ATTACH_FLAG):
-            text = meta[len(META_ATTACH_FLAG):]
-            if text.endswith(META_ATTACH_FLAG):
-                text = text[:-len(META_ATTACH_FLAG)]
+        elif (meta.startswith(META_ATTACH_FLAG) or 
+              meta.endswith(META_ATTACH_FLAG)):
+            begin = meta.startswith(META_ATTACH_FLAG)
+            end = meta.endswith(META_ATTACH_FLAG)
+            if begin:
+                meta = meta[len(META_ATTACH_FLAG):]
+            if end and len(meta) >= len(META_ATTACH_FLAG):
+                meta = meta[:-len(META_ATTACH_FLAG)]
+            space = NO_SPACE if begin or last_attach else SPACE
+            if end:
                 action.attach = True
             if last_capitalize:
-                text = _capitalize(text)
-            action.text = text
-            action.word = _rightmost_word(last_word + text)
-        elif meta.endswith(META_ATTACH_FLAG):
-            text = meta[:-len(META_ATTACH_FLAG)]
-            if last_capitalize:
-                text = _capitalize(text)
-            space = NO_SPACE if last_attach else SPACE
-            action.text = space + text
-            action.word = _rightmost_word(text)
-            action.attach = True
+                meta = _capitalize(meta)
+            action.text = space + meta
+            action.word = _rightmost_word(last_word + action.text)
         elif meta.startswith(META_KEY_COMBINATION):
             action = last_action.copy_state()
             action.combo = meta[len(META_KEY_COMBINATION):]
