@@ -78,17 +78,17 @@ def initialize_tables():
     lines = f.readlines()
     
     for line in lines:
-        first, second = line.split(':', 1)
+        first, second = line.lower().split(':', 1)
         word_part = first.split()
         word = word_part[0]
         part = word_part[1][0]
         inflections = [x.split()[0].strip(',~<!?') for x in second.split('|')]
 
-        if part == 'N':
+        if part == 'n':
             s = inflections[0]
             if s != word and s.endswith('s') and s != _add_s_suffix(word):
                 add_s[word] = s
-        elif part == 'A':
+        elif part == 'a':
             if len(inflections) != 2:
                 continue
             er = inflections[0]
@@ -97,7 +97,7 @@ def initialize_tables():
             est = inflections[1]
             if est != word and est.endswith('est') and est != _add_est_suffix(word):
                 add_est[word] = est
-        elif part == 'V':
+        elif part == 'v':
             if len(inflections) != 3 and len(inflections) != 4:
                 continue
             ed = inflections[0]

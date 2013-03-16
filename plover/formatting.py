@@ -249,11 +249,11 @@ def _atom_to_action(atom, last_action):
         meta = _unescape_atom(meta)
         if meta in META_SUFFIX:
             suffix_f = META_SUFFIX_FUNCTIONS[meta]
-            new = suffix_f(last_word)
-            common = commonprefix([last_word, new])
+            new = suffix_f(last_word.lower())
+            common = commonprefix([last_word.lower(), new])
             action.replace = last_word[len(common):]
             action.text = new[len(common):]
-            action.word = new
+            action.word = last_word[:len(common)] + action.text
         elif meta in META_COMMAS:
             action.text = meta
         elif meta in META_STOPS:

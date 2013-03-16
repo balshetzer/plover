@@ -225,6 +225,18 @@ class FormatterTestCase(unittest.TestCase):
           action(combo='ALT_L(Grave)', capitalize=True),
           action(text=' ', attach=True)
          ]),
+         
+         (('{-|} equip {^s}', action()),
+          [action(capitalize=True),
+           action(text=' Equip', word='Equip'),
+           action(text='s', word='Equips'),
+          ]),
+
+        (('{-|} equip {^ed}', action()),
+         [action(capitalize=True),
+          action(text=' Equip', word='Equip'),
+          action(text='ped', word='Equipped'),
+         ]),
         ]
         self.check_arglist(formatting._translation_to_actions, cases)
     
