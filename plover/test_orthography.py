@@ -12,15 +12,15 @@ class OrthographyTestCase(unittest.TestCase):
         for input, output in cases:
             self.assertEquals(f(input), output)
 
-    def test_pluralize_with_s(self):
+    def test_add_s_suffix(self):
         cases = [('', 's'), ('em', 'ems'), ('person', 'persons'), 
                  ('lady', 'ladies'), ('cherry', 'cherries'), 
                  ('dress', 'dresses')]
-        self.check(orthography.pluralize_with_s, cases)
+        self.check(orthography.add_s_suffix, cases)
 
     def test_add_ed_suffix(self):
         cases = [('', 'ed'), ('carry', 'carried'), ('blame', 'blamed'), 
-                 ('ban', 'banned'), ('sully', 'sullied')]
+                 ('ban', 'banned'), ('sully', 'sullied'), ('equip', 'equipped')]
         self.check(orthography.add_ed_suffix, cases)
 
     def test_add_er_suffix(self):
@@ -32,6 +32,10 @@ class OrthographyTestCase(unittest.TestCase):
         cases = [('', 'ing'), ('begin', 'beginning'), ('test', 'testing'), 
                  ('worry', 'worrying'), ('blame', 'blaming')]
         self.check(orthography.add_ing_suffix, cases)
+        
+    def test_add_est_suffix(self):
+        cases = [('', 'est'), ('large', 'largest'), ('big', 'biggest')]
+        self.check(orthography.add_est_suffix, cases)
 
 if __name__ == '__main__':
     unittest.main()

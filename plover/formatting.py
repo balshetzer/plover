@@ -212,6 +212,7 @@ META_COMMAS = (',', ':', ';')
 META_ED_SUFFIX = '^ed'
 META_ER_SUFFIX = '^er'
 META_ING_SUFFIX = '^ing'
+META_EST_SUFFIX = '^est'
 META_CAPITALIZE = '-|'
 META_PLURALIZE = '^s'
 META_GLUE_FLAG = '&'
@@ -233,7 +234,8 @@ def _raw_to_actions(stroke, last_action):
 META_SUFFIX_FUNCTIONS = {META_ED_SUFFIX: orthography.add_ed_suffix,
                          META_ER_SUFFIX: orthography.add_er_suffix,
                          META_ING_SUFFIX: orthography.add_ing_suffix,
-                         META_PLURALIZE: orthography.pluralize_with_s}
+                         META_PLURALIZE: orthography.add_s_suffix,
+                         META_EST_SUFFIX: orthography.add_est_suffix}
 META_SUFFIX = set(META_SUFFIX_FUNCTIONS.keys())
 
 def _atom_to_action(atom, last_action):
