@@ -18,6 +18,7 @@ MACHINE_CONFIG_TAB_NAME = "Machine"
 DICTIONARY_CONFIG_TAB_NAME = "Dictionary"
 LOGGING_CONFIG_TAB_NAME = "Logging"
 SAVE_CONFIG_BUTTON_NAME = "Save"
+ADD_TRANSLATION_BUTTON_NAME = "Add translation"
 MACHINE_LABEL = "Stenotype Machine:"
 MACHINE_AUTO_START_LABEL = "Automatically Start"
 DICT_FILE_LABEL = "Dictionary File:"
@@ -221,7 +222,16 @@ class DictionaryConfig(wx.Panel):
                                                      initialValue=dict_file,
                                                      startDirectory=dict_dir)
         sizer.Add(self.file_browser, border=UI_BORDER, flag=wx.ALL| wx.EXPAND)
+        
+        add_translation = wx.Button(self, wx.ID_ADD, ADD_TRANSLATION_BUTTON_NAME)
+        self.Bind(wx.EVT_BUTTON, self._show_add_translation, add_translation)
+        sizer.Add(add_translation, border=UI_BORDER)
+        
         self.SetSizer(sizer)
+
+    def _show_add_translation(self, event):
+        # TODO: This is very hacky. Fix it.
+        self.GetParent().GetParent().GetParent()._show_dict_dialog()
 
     def save(self):
         """Write all parameters to the configuration parser."""
